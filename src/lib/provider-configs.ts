@@ -56,31 +56,19 @@ export async function ensureProviderConfigs() {
     return existing.map(mapProviderConfig);
   }
 
-  const settings = await prisma.appSettings.findFirst({
-    where: { setupCompleted: true },
-  });
-
-  if (!settings?.providerBaseUrl || !settings.providerApiKey || !settings.providerModel) {
-    return [];
-  }
-
-  const created = await prisma.providerConfig.create({
-    data: {
-      name: `${settings.siteName} Primary`,
-      baseUrl: settings.providerBaseUrl,
-      apiKey: settings.providerApiKey,
-      model: settings.providerModel,
-      enabled: true,
-      isPrimary: true,
-      sortOrder: 0,
-    },
-  });
-
-  return [mapProviderConfig(created)];
+  return [];
 }
 
 export async function saveProviderConfigs(inputs: ProviderConfigInput[]) {
   const normalized = normalizeProviderInputs(inputs);
+
+  if (normalized.length === 0) {
+    throw new Error("Minimal 1 provider harus ada");
+  }
+
+  if (!normalized.some((item) => item.enabled)) {
+    throw new Error("Minimal 1 provider aktif");
+  }
 
   return prisma.$transaction(async (tx) => {
     const existing = await tx.providerConfig.findMany();
@@ -93,26 +81,35 @@ export async function saveProviderConfigs(inputs: ProviderConfigInput[]) {
 
       if (item.id && existingById.has(item.id)) {
         keptIds.add(item.id);
+        const updateData: Record<string, string | boolean | number> = {
+          name: item.name,
+          baseUrl: item.baseUrl,
+          model: item.model,
+          enabled: item.enabled,
+          isPrimary: item.isPrimary,
+          sortOrder,
+        };
+
+        if (item.apiKey) {
+          updateData.apiKey = item.apiKey;
+        }
+
         await tx.providerConfig.update({
           where: { id: item.id },
-          data: {
-            name: item.name,
-            baseUrl: item.baseUrl,
-            ...(item.apiKey ? { apiKey: item.apiKey } : {}),
-            model: item.model,
-            enabled: item.enabled,
-            isPrimary: item.isPrimary,
-            sortOrder,
-          },
+          data: updateData,
         });
         continue;
+      }
+
+      if (!item.apiKey) {
+        throw new Error(`API key wajib diisi untuk provider baru: ${item.name || "tanpa nama"}`);
       }
 
       const created = await tx.providerConfig.create({
         data: {
           name: item.name,
           baseUrl: item.baseUrl,
-          apiKey: item.apiKey || "",
+          apiKey: item.apiKey,
           model: item.model,
           enabled: item.enabled,
           isPrimary: item.isPrimary,
@@ -151,7 +148,9 @@ export async function getProviderChain() {
 }
 
 function normalizeProviderInputs(inputs: ProviderConfigInput[]) {
-  const filtered = inputs.filter((item) => item.name.trim() || item.baseUrl.trim() || item.model.trim());
+  const filtered = inputs.filter(
+    (item) => item.name.trim() || item.baseUrl.trim() || item.model.trim()
+  );
   const primaryIndex = filtered.findIndex((item) => item.isPrimary && item.enabled);
   const fallbackPrimaryIndex = primaryIndex >= 0 ? primaryIndex : filtered.findIndex((item) => item.enabled);
 

@@ -35,22 +35,9 @@ export async function POST(request: Request) {
         }
         apiKey = provider.apiKey;
       } else {
-        const settings = await prisma.appSettings.findFirst({
-          where: { setupCompleted: true },
-        });
-        if (!settings) {
-          return NextResponse.json({
-            success: false,
-            error: "Tidak ada API key tersimpan",
-          });
-        }
-        apiKey = settings.providerApiKey;
-      }
-
-      if (!apiKey) {
         return NextResponse.json({
           success: false,
-          error: "API key tidak ada",
+          error: "ProviderId dibutuhkan untuk key tersimpan",
         });
       }
     }

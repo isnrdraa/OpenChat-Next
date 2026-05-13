@@ -102,6 +102,7 @@ export default function SettingsPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          providerId: provider.id,
           baseUrl: provider.baseUrl,
           apiKey: provider.apiKey || "existing",
           model: provider.model,
@@ -206,6 +207,11 @@ export default function SettingsPage() {
     setProviders((prev) => prev.map((p, i) => ({ ...p, isPrimary: i === index })));
   }
 
+  const canSaveProviders =
+    providers.length > 0 &&
+    providers.every((provider) => provider.name.trim() && provider.baseUrl.trim() && provider.model.trim()) &&
+    providers.some((provider) => provider.enabled);
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -235,7 +241,7 @@ export default function SettingsPage() {
             </button>
             <button
               onClick={handleSave}
-              disabled={saving}
+              disabled={saving || !canSaveProviders}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium bg-accent text-accent-foreground hover:bg-accent/90 disabled:opacity-50 transition-colors"
             >
               <Save size={14} />

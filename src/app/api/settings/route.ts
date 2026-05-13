@@ -11,9 +11,6 @@ import {
 const settingsSchema = z.object({
   siteName: z.string().min(1).max(100).optional(),
   systemPrompt: z.string().min(1).optional(),
-  providerBaseUrl: z.string().url().optional(),
-  providerApiKey: z.string().min(1).optional(),
-  providerModel: z.string().min(1).optional(),
   providerConfigs: z
     .array(
       z.object({
@@ -48,10 +45,6 @@ export async function GET() {
   return NextResponse.json({
     siteName: settings.siteName,
     systemPrompt: settings.systemPrompt,
-    providerBaseUrl: settings.providerBaseUrl,
-    providerModel: settings.providerModel,
-    // Don't expose API key fully
-    providerApiKeySet: !!settings.providerApiKey,
     providerConfigs: await getProviderChain(),
   });
 }
@@ -78,9 +71,6 @@ export async function PUT(request: Request) {
     const updateData: Record<string, string> = {};
     if (data.siteName) updateData.siteName = data.siteName;
     if (data.systemPrompt) updateData.systemPrompt = data.systemPrompt;
-    if (data.providerBaseUrl) updateData.providerBaseUrl = data.providerBaseUrl;
-    if (data.providerApiKey) updateData.providerApiKey = data.providerApiKey;
-    if (data.providerModel) updateData.providerModel = data.providerModel;
 
     if (Object.keys(updateData).length > 0) {
       await prisma.appSettings.update({

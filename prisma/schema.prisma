@@ -26,9 +26,6 @@ model AppSettings {
   id                  String   @id @default(cuid())
   siteName            String   @map("site_name")
   systemPrompt        String   @map("system_prompt") @db.Text
-  providerBaseUrl     String   @map("provider_base_url")
-  providerApiKey      String   @map("provider_api_key")
-  providerModel       String   @map("provider_model")
   setupCompleted      Boolean  @default(false) @map("setup_completed")
   createdAt           DateTime @default(now()) @map("created_at")
   updatedAt           DateTime @updatedAt @map("updated_at")

@@ -46,9 +46,6 @@ export async function POST(request: Request) {
         data: {
           siteName: data.siteName,
           systemPrompt: data.systemPrompt,
-          providerBaseUrl: data.providerBaseUrl,
-          providerApiKey: data.providerApiKey,
-          providerModel: data.providerModel,
           setupCompleted: true,
         },
       });
