@@ -2,10 +2,20 @@
 
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import rehypeSanitize, { defaultSchema } from "rehype-sanitize";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { oneDark } from "react-syntax-highlighter/dist/esm/styles/prism";
 import { Copy, Check } from "lucide-react";
 import { useState } from "react";
+
+// Extend default schema to allow code class names for syntax highlighting
+const sanitizeSchema = {
+  ...defaultSchema,
+  attributes: {
+    ...defaultSchema.attributes,
+    code: [...(defaultSchema.attributes?.code || []), "className"],
+  },
+};
 
 function CopyButton({ text }: { text: string }) {
   const [copied, setCopied] = useState(false);
@@ -31,6 +41,7 @@ export function MarkdownContent({ content }: { content: string }) {
   return (
     <ReactMarkdown
       remarkPlugins={[remarkGfm]}
+      rehypePlugins={[[rehypeSanitize, sanitizeSchema]]}
       components={{
         code({ className, children, ...props }) {
           const match = /language-(\w+)/.exec(className || "");
@@ -130,9 +141,19 @@ export function MarkdownContent({ content }: { content: string }) {
           );
         },
         a({ href, children }) {
+          // Block javascript: and data: URLs
+          const safeHref =
+            href && (href.startsWith("http://") || href.startsWith("https://") || href.startsWith("/"))
+              ? href
+              : undefined;
+
+          if (!safeHref) {
+            return <span>{children}</span>;
+          }
+
           return (
             <a
-              href={href}
+              href={safeHref}
               target="_blank"
               rel="noopener noreferrer"
               className="text-accent hover:underline"

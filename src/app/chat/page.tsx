@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { ChatArea } from "./chat-area";
 import { ChatSidebar } from "./chat-sidebar";
 import { useTheme } from "@/components/theme-provider";
-import { getBrowserId } from "@/lib/browser-id";
+import { initBrowserId } from "@/lib/browser-id";
 import { Sun, Moon, Settings, PanelLeftClose, PanelLeft } from "lucide-react";
 
 export default function ChatPage() {
@@ -19,7 +19,7 @@ export default function ChatPage() {
 
   useEffect(() => {
     // Initialize browser ID
-    getBrowserId();
+    initBrowserId();
 
     // Check if admin is logged in
     fetch("/api/auth/me")

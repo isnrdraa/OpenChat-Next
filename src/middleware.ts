@@ -1,5 +1,23 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+import { jwtVerify } from "jose";
+
+function getSecret() {
+  const secret = process.env.AUTH_SECRET;
+  if (!secret) return null;
+  return new TextEncoder().encode(secret);
+}
+
+async function verifySessionCookie(token: string): Promise<boolean> {
+  const secret = getSecret();
+  if (!secret) return false;
+  try {
+    await jwtVerify(token, secret);
+    return true;
+  } catch {
+    return false;
+  }
+}
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -13,6 +31,7 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith("/api/auth") ||
     pathname.startsWith("/api/models") ||
     pathname.startsWith("/api/test-provider") ||
+    pathname.startsWith("/api/browser") ||
     pathname.startsWith("/_next") ||
     pathname.startsWith("/favicon") ||
     pathname === "/chat" ||
@@ -39,10 +58,15 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  // Auth check for settings/admin routes
+  // Auth check for settings/admin routes - verify JWT validity
   if (pathname.startsWith("/settings") || pathname.startsWith("/api/settings")) {
-    const session = request.cookies.get("session")?.value;
-    if (!session) {
+    const token = request.cookies.get("session")?.value;
+    if (!token) {
+      return NextResponse.redirect(new URL("/login", request.url));
+    }
+
+    const valid = await verifySessionCookie(token);
+    if (!valid) {
       return NextResponse.redirect(new URL("/login", request.url));
     }
   }

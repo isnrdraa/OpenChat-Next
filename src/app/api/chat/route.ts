@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
+import { getServerBrowserId } from "@/lib/browser-id-server";
 import { chatCompletion, ChatMessage } from "@/lib/provider";
+import { rateLimit, getClientIp } from "@/lib/rate-limit";
 import { z } from "zod";
 
 const chatSchema = z.object({
@@ -16,6 +18,23 @@ const chatSchema = z.object({
 
 export async function POST(request: Request) {
   try {
+    // Rate limit: 20 messages per minute per IP
+    const ip = getClientIp(request);
+    const limit = rateLimit(`chat:${ip}`, {
+      maxAttempts: 20,
+      windowMs: 60 * 1000,
+    });
+
+    if (!limit.allowed) {
+      return NextResponse.json(
+        { error: "Terlalu banyak request. Coba lagi nanti." },
+        {
+          status: 429,
+          headers: { "Retry-After": String(Math.ceil(limit.resetIn / 1000)) },
+        }
+      );
+    }
+
     const body = await request.json();
     const data = chatSchema.parse(body);
 
@@ -39,11 +58,7 @@ export async function POST(request: Request) {
 
     // Determine identity: admin session or browserId
     const session = await getSession();
-    const browserId = request.headers.get("cookie")
-      ?.split(";")
-      .find((c) => c.trim().startsWith("browser_id="))
-      ?.split("=")[1]
-      ?.trim();
+    const browserId = await getServerBrowserId();
 
     // Save user message to DB if sessionId provided
     if (data.sessionId) {

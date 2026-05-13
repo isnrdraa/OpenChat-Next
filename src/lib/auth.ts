@@ -1,9 +1,15 @@
 import { SignJWT, jwtVerify } from "jose";
 import { cookies } from "next/headers";
 
-const SECRET = new TextEncoder().encode(
-  process.env.AUTH_SECRET || "openchat-dev-secret"
-);
+function getSecret() {
+  const secret = process.env.AUTH_SECRET;
+  if (!secret) {
+    throw new Error(
+      "AUTH_SECRET environment variable is required. Generate one with: openssl rand -base64 32"
+    );
+  }
+  return new TextEncoder().encode(secret);
+}
 
 const SESSION_COOKIE = "session";
 const SESSION_DURATION = 60 * 60 * 24 * 7; // 7 days
@@ -13,7 +19,7 @@ export async function createSession(userId: string, username: string) {
     .setProtectedHeader({ alg: "HS256" })
     .setExpirationTime(`${SESSION_DURATION}s`)
     .setIssuedAt()
-    .sign(SECRET);
+    .sign(getSecret());
 
   const cookieStore = await cookies();
   cookieStore.set(SESSION_COOKIE, token, {
@@ -34,7 +40,16 @@ export async function getSession() {
   if (!token) return null;
 
   try {
-    const { payload } = await jwtVerify(token, SECRET);
+    const { payload } = await jwtVerify(token, getSecret());
+    return payload as { userId: string; username: string };
+  } catch {
+    return null;
+  }
+}
+
+export async function verifyToken(token: string) {
+  try {
+    const { payload } = await jwtVerify(token, getSecret());
     return payload as { userId: string; username: string };
   } catch {
     return null;

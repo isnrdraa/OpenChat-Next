@@ -1,13 +1,20 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getSession } from "@/lib/auth";
 
 export async function GET() {
+  // Require admin auth to list models
+  const session = await getSession();
+  if (!session) {
+    return NextResponse.json({ models: [] });
+  }
+
   const settings = await prisma.appSettings.findFirst({
     where: { setupCompleted: true },
   });
 
   if (!settings) {
-    return NextResponse.json({ error: "Not configured" }, { status: 404 });
+    return NextResponse.json({ models: [] });
   }
 
   try {

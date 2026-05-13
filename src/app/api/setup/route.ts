@@ -15,44 +15,50 @@ const setupSchema = z.object({
 
 export async function POST(request: Request) {
   try {
-    // Check if already setup
-    const existing = await prisma.appSettings.findFirst({
-      where: { setupCompleted: true },
-    });
-
-    if (existing) {
-      return NextResponse.json(
-        { error: "Setup already completed" },
-        { status: 400 }
-      );
-    }
-
     const body = await request.json();
     const data = setupSchema.parse(body);
 
-    // Hash password
-    const passwordHash = await bcrypt.hash(data.password, 12);
+    // Use transaction to prevent race condition
+    const result = await prisma.$transaction(async (tx) => {
+      // Check if already setup inside transaction
+      const existing = await tx.appSettings.findFirst({
+        where: { setupCompleted: true },
+      });
 
-    // Create admin user
-    await prisma.user.create({
-      data: {
-        username: data.username,
-        passwordHash,
-        role: "admin",
-      },
+      if (existing) {
+        return { error: "Setup already completed" };
+      }
+
+      // Hash password
+      const passwordHash = await bcrypt.hash(data.password, 12);
+
+      // Create admin user
+      await tx.user.create({
+        data: {
+          username: data.username,
+          passwordHash,
+          role: "admin",
+        },
+      });
+
+      // Create app settings
+      await tx.appSettings.create({
+        data: {
+          siteName: data.siteName,
+          systemPrompt: data.systemPrompt,
+          providerBaseUrl: data.providerBaseUrl,
+          providerApiKey: data.providerApiKey,
+          providerModel: data.providerModel,
+          setupCompleted: true,
+        },
+      });
+
+      return { success: true };
     });
 
-    // Create app settings
-    await prisma.appSettings.create({
-      data: {
-        siteName: data.siteName,
-        systemPrompt: data.systemPrompt,
-        providerBaseUrl: data.providerBaseUrl,
-        providerApiKey: data.providerApiKey,
-        providerModel: data.providerModel,
-        setupCompleted: true,
-      },
-    });
+    if ("error" in result) {
+      return NextResponse.json({ error: result.error }, { status: 400 });
+    }
 
     return NextResponse.json({ success: true });
   } catch (error) {

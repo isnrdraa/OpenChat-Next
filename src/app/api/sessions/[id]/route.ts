@@ -1,15 +1,14 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
-import { cookies } from "next/headers";
+import { getServerBrowserId } from "@/lib/browser-id-server";
 
 export async function GET(
   _request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const session = await getSession();
-  const cookieStore = await cookies();
-  const browserId = cookieStore.get("browser_id")?.value;
+  const browserId = await getServerBrowserId();
 
   if (!session && !browserId) {
     return NextResponse.json({ error: "No identity" }, { status: 400 });
@@ -41,8 +40,7 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const session = await getSession();
-  const cookieStore = await cookies();
-  const browserId = cookieStore.get("browser_id")?.value;
+  const browserId = await getServerBrowserId();
 
   if (!session && !browserId) {
     return NextResponse.json({ error: "No identity" }, { status: 400 });
@@ -75,8 +73,7 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const session = await getSession();
-  const cookieStore = await cookies();
-  const browserId = cookieStore.get("browser_id")?.value;
+  const browserId = await getServerBrowserId();
 
   if (!session && !browserId) {
     return NextResponse.json({ error: "No identity" }, { status: 400 });
