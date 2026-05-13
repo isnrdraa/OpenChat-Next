@@ -1,36 +1,82 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# OpenChat
 
-## Getting Started
+Platform chatbot ringan dengan antarmuka web modern. Terinspirasi dari OpenWebUI, ChatGPT, dan OpenCode.
 
-First, run the development server:
+## Fitur
+
+- Setup wizard saat pertama kali deploy (admin, nama site, prompt, provider)
+- Chat terbuka untuk publik tanpa perlu login
+- History chat per browser (privasi terjaga)
+- Provider OpenAI-compatible (support semua API yang mengikuti format OpenAI)
+- Streaming response
+- Markdown rendering dengan syntax highlighting
+- Tombol copy untuk setiap response AI
+- Dark/light mode
+- Settings page untuk admin (model dropdown, test connection, ubah prompt)
+- Multi-model support dengan auto-detect dari provider
+
+## Tech Stack
+
+- Next.js 16 (App Router)
+- React 19
+- TypeScript
+- Tailwind CSS v4
+- shadcn/ui
+- PostgreSQL + Prisma 7
+- Zod (validasi)
+- Jose (JWT session)
+
+## Prasyarat
+
+- Node.js 20+
+- PostgreSQL
+
+## Instalasi
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+# Clone repo
+git clone git@github.com:isnrdraa/OpenChat-Next.git
+cd OpenChat-Next
+
+# Install dependencies
+NODE_ENV=development npm install
+
+# Setup environment
+cp .env.example .env
+# Edit .env sesuai konfigurasi database
+
+# Generate Prisma client
+npx prisma generate
+
+# Push schema ke database
+npx prisma db push
+
+# Jalankan development server
+NODE_ENV=development npx next dev -p 3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Environment Variables
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```env
+DATABASE_URL="postgresql://user:password@localhost:5432/openchat"
+AUTH_SECRET="random-secret-string"
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Penggunaan
 
-## Learn More
+1. Buka browser, akses `http://localhost:3000`
+2. Saat pertama kali, akan muncul setup wizard
+3. Isi data admin, nama website, system prompt, dan provider AI
+4. Setelah setup selesai, chat langsung bisa digunakan oleh siapapun
+5. Login admin hanya diperlukan untuk mengakses halaman settings
 
-To learn more about Next.js, take a look at the following resources:
+## Build Production
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```bash
+NODE_ENV=production npm run build
+npm start
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Lisensi
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+MIT
