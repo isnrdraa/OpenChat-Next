@@ -4,9 +4,13 @@ export interface ChatMessage {
 }
 
 export interface ProviderConfig {
+  id?: string;
+  name?: string;
   baseUrl: string;
   apiKey: string;
   model: string;
+  enabled?: boolean;
+  isPrimary?: boolean;
 }
 
 export interface StreamCallbacks {
@@ -88,32 +92,81 @@ export async function streamChat(
 }
 
 export async function chatCompletion(
+  configs: ProviderConfig[],
+  messages: ChatMessage[]
+): Promise<ReadableStream> {
+  let lastError: Error = new Error("No provider available");
+
+  for (const config of configs) {
+    if (config.enabled === false) continue;
+
+    try {
+      return await streamFromProvider(config, messages);
+    } catch (error) {
+      if (error instanceof ProviderAttemptError && error.retryable) {
+        lastError = error;
+        continue;
+      }
+
+      throw error;
+    }
+  }
+
+  throw lastError;
+}
+
+class ProviderAttemptError extends Error {
+  retryable: boolean;
+
+  constructor(message: string, retryable: boolean) {
+    super(message);
+    this.name = "ProviderAttemptError";
+    this.retryable = retryable;
+  }
+}
+
+async function streamFromProvider(
   config: ProviderConfig,
   messages: ChatMessage[]
 ): Promise<ReadableStream> {
   const url = `${config.baseUrl.replace(/\/$/, "")}/chat/completions`;
 
-  const res = await fetch(url, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${config.apiKey}`,
-    },
-    body: JSON.stringify({
-      model: config.model,
-      messages,
-      stream: true,
-    }),
-  });
+  let res: Response;
+  try {
+    res = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${config.apiKey}`,
+      },
+      body: JSON.stringify({
+        model: config.model,
+        messages,
+        stream: true,
+      }),
+    });
+  } catch (error) {
+    throw new ProviderAttemptError(
+      error instanceof Error ? error.message : String(error),
+      true
+    );
+  }
 
   if (!res.ok) {
     const text = await res.text();
-    throw new Error(`Provider error ${res.status}: ${text}`);
+    throw new ProviderAttemptError(
+      `Provider error ${res.status}: ${text}`,
+      isRetryableStatus(res.status)
+    );
   }
 
   if (!res.body) {
-    throw new Error("No response body");
+    throw new ProviderAttemptError("No response body", true);
   }
 
   return res.body;
+}
+
+function isRetryableStatus(status: number) {
+  return status >= 500 || status === 408 || status === 425 || status === 429;
 }

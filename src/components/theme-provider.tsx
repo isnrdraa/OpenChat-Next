@@ -19,19 +19,10 @@ export function useTheme() {
 }
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setTheme] = useState<Theme>("dark");
-
-  useEffect(() => {
-    const stored = localStorage.getItem("openchat_theme") as Theme | null;
-    if (stored) {
-      setTheme(stored);
-      if (stored === "dark") {
-        document.documentElement.classList.add("dark");
-      } else {
-        document.documentElement.classList.remove("dark");
-      }
-    }
-  }, []);
+  const [theme, setTheme] = useState<Theme>(() => {
+    if (typeof window === "undefined") return "dark";
+    return (localStorage.getItem("openchat_theme") as Theme | null) || "dark";
+  });
 
   useEffect(() => {
     const root = document.documentElement;

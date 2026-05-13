@@ -42,7 +42,8 @@ export default function ChatPage() {
     setSessionId(null);
   }
 
-  const handleSessionCreated = useCallback((id: string, _title: string) => {
+  const handleSessionCreated = useCallback((id: string, title: string) => {
+    void title;
     setSessionId(id);
     setRefreshKey((k) => k + 1);
   }, []);

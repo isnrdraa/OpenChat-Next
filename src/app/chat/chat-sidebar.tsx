@@ -41,10 +41,6 @@ export function ChatSidebar({
 }: ChatSidebarProps) {
   const [sessions, setSessions] = useState<Session[]>([]);
 
-  useEffect(() => {
-    fetchSessions();
-  }, [refreshKey]);
-
   async function fetchSessions() {
     try {
       const res = await fetch("/api/sessions");
@@ -56,6 +52,14 @@ export function ChatSidebar({
       // Ignore
     }
   }
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      void fetchSessions();
+    }, 0);
+
+    return () => window.clearTimeout(timer);
+  }, [refreshKey]);
 
   async function handleDelete(e: React.MouseEvent, id: string) {
     e.stopPropagation();

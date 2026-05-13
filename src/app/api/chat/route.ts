@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { getServerBrowserId } from "@/lib/browser-id-server";
 import { chatCompletion, ChatMessage } from "@/lib/provider";
+import { getProviderChain } from "@/lib/provider-configs";
 import { rateLimit, getClientIp } from "@/lib/rate-limit";
 import { z } from "zod";
 
@@ -56,6 +57,14 @@ export async function POST(request: Request) {
       ...data.messages,
     ];
 
+    const providers = await getProviderChain();
+    if (providers.length === 0) {
+      return NextResponse.json(
+        { error: "Belum ada provider aktif" },
+        { status: 500 }
+      );
+    }
+
     // Determine identity: admin session or browserId
     const session = await getSession();
     const browserId = await getServerBrowserId();
@@ -86,11 +95,7 @@ export async function POST(request: Request) {
 
     // Stream from provider
     const stream = await chatCompletion(
-      {
-        baseUrl: settings.providerBaseUrl,
-        apiKey: settings.providerApiKey,
-        model: settings.providerModel,
-      },
+      providers,
       messages
     );
 

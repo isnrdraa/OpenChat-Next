@@ -38,16 +38,13 @@ export function ChatArea({ sessionId, onSessionCreated }: ChatAreaProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
-  const [currentSessionId, setCurrentSessionId] = useState<string | null>(
-    sessionId
-  );
+  const [errorMessage, setErrorMessage] = useState("");
+  const [retryPayload, setRetryPayload] = useState<Message[] | null>(null);
+  const [createdSessionId, setCreatedSessionId] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  // Sync external sessionId changes
-  useEffect(() => {
-    setCurrentSessionId(sessionId);
-  }, [sessionId]);
+  const currentSessionId = sessionId ?? createdSessionId;
 
   // Load messages when session changes
   const loadMessages = useCallback(async () => {
@@ -74,7 +71,11 @@ export function ChatArea({ sessionId, onSessionCreated }: ChatAreaProps) {
   }, [currentSessionId]);
 
   useEffect(() => {
-    loadMessages();
+    const timer = window.setTimeout(() => {
+      void loadMessages();
+    }, 0);
+
+    return () => window.clearTimeout(timer);
   }, [loadMessages]);
 
   useEffect(() => {
@@ -95,6 +96,9 @@ export function ChatArea({ sessionId, onSessionCreated }: ChatAreaProps) {
   async function handleSend() {
     const content = input.trim();
     if (!content || loading) return;
+
+    setErrorMessage("");
+    setRetryPayload(null);
 
     const userMessage: Message = { role: "user", content };
     const newMessages = [...messages, userMessage];
@@ -120,7 +124,7 @@ export function ChatArea({ sessionId, onSessionCreated }: ChatAreaProps) {
         if (res.ok) {
           const data = await res.json();
           activeSessionId = data.session.id;
-          setCurrentSessionId(activeSessionId);
+          setCreatedSessionId(activeSessionId);
           if (onSessionCreated) {
             onSessionCreated(data.session.id, title);
           }
@@ -165,6 +169,8 @@ export function ChatArea({ sessionId, onSessionCreated }: ChatAreaProps) {
           ...newMessages,
           { role: "assistant", content: `Error: ${errorMsg}` },
         ]);
+        setErrorMessage("Provider gagal. Coba kirim ulang pesan terakhir.");
+        setRetryPayload(newMessages);
         setLoading(false);
         return;
       }
@@ -212,6 +218,70 @@ export function ChatArea({ sessionId, onSessionCreated }: ChatAreaProps) {
         ...newMessages,
         { role: "assistant", content: "Error: Network request failed" },
       ]);
+      setErrorMessage("Jaringan gagal. Coba kirim ulang pesan terakhir.");
+      setRetryPayload(newMessages);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleRetry() {
+    if (!retryPayload || loading) return;
+
+    setMessages(retryPayload);
+    setInput("");
+    setErrorMessage("");
+
+    try {
+      setLoading(true);
+      const res = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          messages: retryPayload,
+          sessionId: currentSessionId,
+        }),
+      });
+
+      if (!res.ok) {
+        throw new Error("Retry failed");
+      }
+
+      const reader = res.body?.getReader();
+      if (!reader) return;
+
+      const decoder = new TextDecoder();
+      let assistantContent = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        const chunk = decoder.decode(value, { stream: true });
+        const lines = chunk.split("\n");
+
+        for (const line of lines) {
+          const trimmed = line.trim();
+          if (!trimmed || !trimmed.startsWith("data: ")) continue;
+
+          const data = trimmed.slice(6);
+          if (data === "[DONE]") continue;
+
+          try {
+            const parsed = JSON.parse(data);
+            const token = parsed.choices?.[0]?.delta?.content;
+            if (token) {
+              assistantContent += token;
+              setMessages([...retryPayload, { role: "assistant", content: assistantContent }]);
+            }
+          } catch {
+            // Skip malformed
+          }
+        }
+      }
+      setRetryPayload(null);
+    } catch {
+      setErrorMessage("Retry gagal. Coba lagi nanti.");
     } finally {
       setLoading(false);
     }
@@ -226,6 +296,17 @@ export function ChatArea({ sessionId, onSessionCreated }: ChatAreaProps) {
 
   return (
     <div className="flex flex-col h-full">
+      {errorMessage && (
+        <div className="mx-4 mt-3 p-3 rounded-lg border border-destructive/20 bg-destructive/10 text-destructive text-sm flex items-center justify-between gap-3">
+          <span>{errorMessage}</span>
+          {retryPayload && (
+            <button onClick={handleRetry} className="text-xs px-3 py-1.5 rounded-md border border-destructive/30 hover:bg-destructive/10 transition-colors">
+              Kirim ulang
+            </button>
+          )}
+        </div>
+      )}
+
       {/* Messages */}
       <div className="flex-1 overflow-y-auto" ref={scrollRef}>
         <div className="max-w-3xl mx-auto px-4 py-6 space-y-6">

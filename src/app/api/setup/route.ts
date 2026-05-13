@@ -53,6 +53,18 @@ export async function POST(request: Request) {
         },
       });
 
+      await tx.providerConfig.create({
+        data: {
+          name: `${data.siteName} Primary`,
+          baseUrl: data.providerBaseUrl,
+          apiKey: data.providerApiKey,
+          model: data.providerModel,
+          enabled: true,
+          isPrimary: true,
+          sortOrder: 0,
+        },
+      });
+
       return { success: true };
     });
 

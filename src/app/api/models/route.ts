@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
+import { getProviderChain } from "@/lib/provider-configs";
 
 export async function GET() {
   // Require admin auth to list models
@@ -9,19 +9,18 @@ export async function GET() {
     return NextResponse.json({ models: [] });
   }
 
-  const settings = await prisma.appSettings.findFirst({
-    where: { setupCompleted: true },
-  });
+  const providers = await getProviderChain();
+  const provider = providers[0];
 
-  if (!settings) {
+  if (!provider) {
     return NextResponse.json({ models: [] });
   }
 
   try {
-    const url = `${settings.providerBaseUrl.replace(/\/$/, "")}/models`;
+    const url = `${provider.baseUrl.replace(/\/$/, "")}/models`;
     const res = await fetch(url, {
       headers: {
-        Authorization: `Bearer ${settings.providerApiKey}`,
+        Authorization: `Bearer ${provider.apiKey}`,
       },
     });
 

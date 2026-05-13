@@ -36,6 +36,22 @@ model AppSettings {
   @@map("app_settings")
 }
 
+model ProviderConfig {
+  id          String   @id @default(cuid())
+  name        String
+  baseUrl     String   @map("base_url")
+  apiKey      String   @map("api_key")
+  model       String
+  enabled     Boolean  @default(true)
+  isPrimary   Boolean  @default(false) @map("is_primary")
+  sortOrder   Int      @default(0) @map("sort_order")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@index([enabled, sortOrder])
+  @@map("provider_configs")
+}
+
 model ChatSession {
   id        String    @id @default(cuid())
   title     String    @default("New Chat")

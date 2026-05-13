@@ -3,6 +3,10 @@ import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { z } from "zod";
 import bcrypt from "bcryptjs";
+import {
+  getProviderChain,
+  saveProviderConfigs,
+} from "@/lib/provider-configs";
 
 const settingsSchema = z.object({
   siteName: z.string().min(1).max(100).optional(),
@@ -10,6 +14,19 @@ const settingsSchema = z.object({
   providerBaseUrl: z.string().url().optional(),
   providerApiKey: z.string().min(1).optional(),
   providerModel: z.string().min(1).optional(),
+  providerConfigs: z
+    .array(
+      z.object({
+        id: z.string().optional(),
+        name: z.string().min(1),
+        baseUrl: z.string().url(),
+        apiKey: z.string().optional(),
+        model: z.string().min(1),
+        enabled: z.boolean(),
+        isPrimary: z.boolean(),
+      })
+    )
+    .optional(),
   currentPassword: z.string().optional(),
   newPassword: z.string().min(6).max(100).optional(),
 });
@@ -35,6 +52,7 @@ export async function GET() {
     providerModel: settings.providerModel,
     // Don't expose API key fully
     providerApiKeySet: !!settings.providerApiKey,
+    providerConfigs: await getProviderChain(),
   });
 }
 
@@ -69,6 +87,10 @@ export async function PUT(request: Request) {
         where: { id: settings.id },
         data: updateData,
       });
+    }
+
+    if (data.providerConfigs) {
+      await saveProviderConfigs(data.providerConfigs);
     }
 
     // Update password if provided

@@ -4,8 +4,9 @@ import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 
 const testSchema = z.object({
+  providerId: z.string().optional(),
   baseUrl: z.string().url(),
-  apiKey: z.string().min(1),
+  apiKey: z.string().optional(),
   model: z.string().min(1),
 });
 
@@ -19,19 +20,39 @@ export async function POST(request: Request) {
     const body = await request.json();
     const data = testSchema.parse(body);
 
-    // If apiKey is "existing", use the one from DB
+    // If apiKey is "existing" or blank, use provider stored in DB
     let apiKey = data.apiKey;
-    if (apiKey === "existing") {
-      const settings = await prisma.appSettings.findFirst({
-        where: { setupCompleted: true },
-      });
-      if (!settings) {
+    if (!apiKey || apiKey === "existing") {
+      if (data.providerId) {
+        const provider = await prisma.providerConfig.findUnique({
+          where: { id: data.providerId },
+        });
+        if (!provider) {
+          return NextResponse.json({
+            success: false,
+            error: "Provider tidak ditemukan",
+          });
+        }
+        apiKey = provider.apiKey;
+      } else {
+        const settings = await prisma.appSettings.findFirst({
+          where: { setupCompleted: true },
+        });
+        if (!settings) {
+          return NextResponse.json({
+            success: false,
+            error: "Tidak ada API key tersimpan",
+          });
+        }
+        apiKey = settings.providerApiKey;
+      }
+
+      if (!apiKey) {
         return NextResponse.json({
           success: false,
-          error: "Tidak ada API key tersimpan",
+          error: "API key tidak ada",
         });
       }
-      apiKey = settings.providerApiKey;
     }
 
     const url = `${data.baseUrl.replace(/\/$/, "")}/chat/completions`;
