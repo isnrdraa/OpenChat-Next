@@ -1,152 +1,282 @@
 # OpenChat
 
-Platform chatbot ringan dan self-hosted dengan antarmuka web modern. Terinspirasi dari OpenWebUI, ChatGPT, dan OpenCode. Siap deploy dalam 5 menit.
+> Lightweight self-hosted AI chatbot platform with modern web UI.
+> Inspired by OpenWebUI, ChatGPT, and OpenCode.
+> Deploy in under 5 minutes.
 
-## Fitur Utama
+---
 
-**Chat**
-- Chat terbuka untuk publik tanpa perlu login
-- Streaming response real-time
-- Markdown rendering dengan syntax highlighting
-- Tombol copy untuk setiap response dan code block
-- History chat per browser (privasi terjaga antar pengguna)
-- Auto-create session saat pesan pertama dikirim
+## ✨ Preview
 
-**Provider AI**
-- Kompatibel dengan semua API format OpenAI (OpenAI, OpenRouter, vLLM, Ollama, dll)
-- Auto-detect daftar model dari provider
-- Test connection langsung dari settings
-- Streaming response dari server (API key tidak terekspos ke client)
+* ⚡ Public chat tanpa login
+* 🤖 Support semua provider format OpenAI
+* 🌙 Modern dark mode interface
+* 🔒 API key aman di server
+* 📦 Self-hosted & lightweight
+* 🚀 Setup wizard otomatis
 
-**Admin**
-- Setup wizard saat pertama kali deploy
-- Template system prompt (General, Customer Support, Coding, Roleplay, Custom)
-- Model selector dropdown
-- Ubah konfigurasi tanpa restart
+---
 
-**Tampilan**
-- Dark mode default, toggle dark/light
-- Sidebar collapsible dengan riwayat chat
-- Responsive dan ringan
-- Warna terinspirasi OpenCode (warm peach accent)
+# ✨ Features
 
-**Keamanan**
-- Rate limiting pada login dan chat
-- Browser identity dengan HMAC server-signed
-- JWT session dengan verifikasi di middleware
-- Sanitasi markdown (XSS protection)
-- API key tersimpan di server, tidak pernah dikirim ke client
+## 💬 Chat Experience
 
-## Tech Stack
+* Public chat tanpa perlu login
+* Real-time streaming response
+* Markdown rendering + syntax highlighting
+* Riwayat chat tersimpan per browser
+* Responsive UI untuk desktop & mobile
 
-| Teknologi | Fungsi |
-|-----------|--------|
-| Next.js 16 | Framework fullstack (App Router) |
-| React 19 | UI library |
-| TypeScript | Type safety |
-| Tailwind CSS v4 | Styling |
-| shadcn/ui | Komponen UI |
-| PostgreSQL | Database |
-| Prisma 7 | ORM dan schema management |
-| Jose | JWT authentication |
-| Bcrypt | Password hashing |
-| Zod | Validasi input |
-| react-markdown | Rendering markdown |
-| react-syntax-highlighter | Syntax highlighting code blocks |
-| rehype-sanitize | XSS protection pada markdown |
+---
 
-## Arsitektur
+## 🤖 AI Provider Support
 
-```
+Kompatibel dengan semua provider yang menggunakan format API OpenAI:
+
+* OpenAI
+* OpenRouter
+* Ollama
+* vLLM
+* LM Studio
+* dan provider kompatibel lainnya
+
+### Fitur Provider
+
+* Auto-detect model list
+* Test connection langsung dari dashboard
+* Streaming response server-side
+* API key tidak pernah terekspos ke client
+
+---
+
+## 🛠️ Admin Panel
+
+* First-run setup wizard
+* Konfigurasi tanpa restart server
+* Model selector dropdown
+* System prompt templates:
+
+  * General Assistant
+  * Customer Support
+  * Coding Assistant
+  * Roleplay
+  * Custom Prompt
+
+---
+
+## 🎨 UI & Design
+
+* Dark mode default
+* Toggle dark/light theme
+* Sidebar collapsible
+* Modern OpenCode-inspired warm accent
+* Clean & minimal interface
+* Lightweight dan cepat
+
+---
+
+## 🔐 Security
+
+* Rate limiting untuk login & chat
+* Browser identity dengan HMAC signature
+* JWT authentication middleware
+* Markdown sanitization (XSS protection)
+* API key aman di server
+* Session isolation antar browser
+
+---
+
+# 🧱 Tech Stack
+
+| Technology               | Description                      |
+| ------------------------ | -------------------------------- |
+| Next.js 16               | Fullstack framework (App Router) |
+| React 19                 | UI library                       |
+| TypeScript               | Type safety                      |
+| Tailwind CSS v4          | Styling                          |
+| shadcn/ui                | UI components                    |
+| PostgreSQL               | Database                         |
+| Prisma 7                 | ORM & schema management          |
+| Jose                     | JWT authentication               |
+| Bcrypt                   | Password hashing                 |
+| Zod                      | Validation                       |
+| react-markdown           | Markdown rendering               |
+| react-syntax-highlighter | Code highlighting                |
+| rehype-sanitize          | XSS protection                   |
+
+---
+
+# 🏗️ Architecture
+
+```txt
 Browser (Public/Admin)
     |
     v
-[Next.js App Router]
+[ Next.js App Router ]
     |
-    +-- /chat .............. Chat UI (public, no login)
+    +-- /chat .............. Public chat UI
     +-- /login ............. Admin login
-    +-- /settings .......... Admin settings (protected)
-    +-- /setup ............. First-run wizard
+    +-- /settings .......... Protected admin settings
+    +-- /setup ............. First-run setup wizard
     |
-    +-- /api/chat .......... Proxy ke LLM provider (streaming)
-    +-- /api/sessions ...... CRUD chat sessions
-    +-- /api/browser ....... Register browser identity
-    +-- /api/settings ...... Admin config CRUD
-    +-- /api/models ........ List model dari provider
-    +-- /api/test-provider . Test koneksi provider
+    +-- /api/chat .......... LLM proxy (streaming)
+    +-- /api/sessions ...... Chat session CRUD
+    +-- /api/browser ....... Browser identity
+    +-- /api/settings ...... App configuration
+    +-- /api/models ........ Provider model list
+    +-- /api/test-provider . Provider connection test
     |
     v
-[PostgreSQL]
+[ PostgreSQL ]
     - users
     - app_settings
     - chat_sessions
     - messages
 ```
 
-**Flow:**
-1. Deploy pertama kali → wizard setup (admin, nama site, prompt, provider)
-2. Setelah setup → chat langsung bisa dipakai siapapun
-3. Admin login hanya untuk akses settings
+---
 
-## Prasyarat
+# ⚙️ Application Flow
 
-- Node.js 20+
-- PostgreSQL 14+
-
-## Instalasi
-
-```bash
-# Clone repo
-git clone git@github.com:isnrdraa/OpenChat-Next.git
-cd OpenChat-Next
-
-# Install dependencies
-NODE_ENV=development npm install
-
-# Setup environment
-cp .env.example .env
-# Edit .env sesuai konfigurasi
-
-# Generate Prisma client
-npx prisma generate
-
-# Push schema ke database
-npx prisma db push
-
-# Jalankan development server
-NODE_ENV=development npx next dev -p 3000
+```txt
+First Deploy
+    ↓
+Setup Wizard
+    ↓
+Configure Admin + AI Provider
+    ↓
+Application Ready
+    ↓
+Public Chat Accessible
 ```
 
-## Environment Variables
+Admin login hanya diperlukan untuk mengakses settings.
 
-| Variable | Wajib | Deskripsi |
-|----------|-------|-----------|
-| `DATABASE_URL` | Ya | Connection string PostgreSQL |
-| `AUTH_SECRET` | Ya | Secret untuk signing JWT. Generate dengan `openssl rand -base64 32` |
+---
 
-Contoh `.env`:
+# 📦 Requirements
+
+* Node.js 20+
+* PostgreSQL 14+
+
+---
+
+# 🚀 Installation
+
+## 1. Clone Repository
+
+```bash
+git clone git@github.com:isnrdraa/OpenChat-Next.git
+cd OpenChat-Next
+```
+
+---
+
+## 2. Install Dependencies
+
+```bash
+NODE_ENV=development npm install
+```
+
+---
+
+## 3. Configure Environment
+
+```bash
+cp .env.example .env
+```
+
+Isi `.env`:
+
 ```env
 DATABASE_URL="postgresql://user:password@localhost:5432/openchat"
 AUTH_SECRET="random-secret-string-minimal-32-karakter"
 ```
 
-## Deployment
+Generate secret:
 
 ```bash
-# Build production
-NODE_ENV=production npm run build
+openssl rand -base64 32
+```
 
-# Jalankan
+---
+
+## 4. Setup Database
+
+```bash
+npx prisma generate
+npx prisma db push
+```
+
+---
+
+## 5. Run Development Server
+
+```bash
+NODE_ENV=development npx next dev -p 3000
+```
+
+Buka:
+
+```txt
+http://localhost:3000
+```
+
+---
+
+# 🌐 Deployment
+
+## Production Build
+
+```bash
+NODE_ENV=production npm run build
 npm start
 ```
 
-Server akan jalan di port 3000.
+Default berjalan di:
 
-Untuk Docker, pastikan:
-- PostgreSQL accessible dari container
-- `DATABASE_URL` dan `AUTH_SECRET` di-set sebagai environment variable
-- Port 3000 di-expose
+```txt
+http://localhost:3000
+```
 
-## Lisensi
+---
 
-MIT
+## 🐳 Docker Notes
+
+Pastikan:
+
+* PostgreSQL dapat diakses container
+* `DATABASE_URL` sudah di-set
+* `AUTH_SECRET` sudah di-set
+* Port `3000` di-expose
+
+---
+
+# 🔑 Environment Variables
+
+| Variable       | Required | Description                  |
+| -------------- | -------- | ---------------------------- |
+| `DATABASE_URL` | Yes      | PostgreSQL connection string |
+| `AUTH_SECRET`  | Yes      | Secret key untuk JWT signing |
+
+---
+
+# 📌 Roadmap
+
+* [ ] File upload support
+* [ ] Image generation support
+* [ ] Chat sharing
+* [ ] Message search
+* [ ] Redis caching
+
+---
+
+# 📄 License
+
+MIT License
+
+---
+
+# ⭐ Support
+
+Jika project ini membantu, jangan lupa beri ⭐ di GitHub.
