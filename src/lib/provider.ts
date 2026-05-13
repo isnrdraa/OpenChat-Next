@@ -19,6 +19,18 @@ export interface StreamCallbacks {
   onError: (error: Error) => void;
 }
 
+export function isRetryableProviderStatus(status: number) {
+  return status >= 500 || status === 408 || status === 425 || status === 429;
+}
+
+export function isRetryableProviderError(error: unknown) {
+  if (error instanceof ProviderAttemptError) {
+    return error.retryable;
+  }
+
+  return error instanceof Error;
+}
+
 export async function streamChat(
   config: ProviderConfig,
   messages: ChatMessage[],
@@ -156,7 +168,7 @@ async function streamFromProvider(
     const text = await res.text();
     throw new ProviderAttemptError(
       `Provider error ${res.status}: ${text}`,
-      isRetryableStatus(res.status)
+      isRetryableProviderStatus(res.status)
     );
   }
 
@@ -165,8 +177,4 @@ async function streamFromProvider(
   }
 
   return res.body;
-}
-
-function isRetryableStatus(status: number) {
-  return status >= 500 || status === 408 || status === 425 || status === 429;
 }

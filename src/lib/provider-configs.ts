@@ -21,6 +21,18 @@ export interface ProviderConfigRecord {
   sortOrder: number;
 }
 
+export function sortProviderRecords<T extends { isPrimary: boolean; sortOrder: number; createdAt?: Date }>(
+  configs: T[]
+) {
+  return [...configs].sort((a, b) => {
+    if (a.isPrimary !== b.isPrimary) return a.isPrimary ? -1 : 1;
+    if (a.sortOrder !== b.sortOrder) return a.sortOrder - b.sortOrder;
+    const aCreated = a.createdAt?.getTime() ?? 0;
+    const bCreated = b.createdAt?.getTime() ?? 0;
+    return aCreated - bCreated;
+  });
+}
+
 function mapProviderConfig(config: {
   id: string;
   name: string;
@@ -61,14 +73,7 @@ export async function ensureProviderConfigs() {
 
 export async function saveProviderConfigs(inputs: ProviderConfigInput[]) {
   const normalized = normalizeProviderInputs(inputs);
-
-  if (normalized.length === 0) {
-    throw new Error("Minimal 1 provider harus ada");
-  }
-
-  if (!normalized.some((item) => item.enabled)) {
-    throw new Error("Minimal 1 provider aktif");
-  }
+  validateProviderInputs(normalized);
 
   return prisma.$transaction(async (tx) => {
     const existing = await tx.providerConfig.findMany();
@@ -147,7 +152,7 @@ export async function getProviderChain() {
   return configs.filter((config) => config.enabled);
 }
 
-function normalizeProviderInputs(inputs: ProviderConfigInput[]) {
+export function normalizeProviderInputs(inputs: ProviderConfigInput[]) {
   const filtered = inputs.filter(
     (item) => item.name.trim() || item.baseUrl.trim() || item.model.trim()
   );
@@ -163,4 +168,28 @@ function normalizeProviderInputs(inputs: ProviderConfigInput[]) {
     enabled: !!item.enabled,
     isPrimary: index === fallbackPrimaryIndex,
   }));
+}
+
+export function validateProviderInputs(inputs: ProviderConfigInput[]) {
+  if (inputs.length === 0) {
+    throw new Error("Minimal 1 provider harus ada");
+  }
+
+  if (!inputs.some((item) => item.enabled)) {
+    throw new Error("Minimal 1 provider aktif");
+  }
+
+  for (const input of inputs) {
+    if (!input.name.trim()) {
+      throw new Error("Nama provider wajib diisi");
+    }
+
+    if (!input.baseUrl.trim()) {
+      throw new Error(`Base URL wajib diisi untuk ${input.name || "provider"}`);
+    }
+
+    if (!input.model.trim()) {
+      throw new Error(`Model wajib diisi untuk ${input.name || "provider"}`);
+    }
+  }
 }
