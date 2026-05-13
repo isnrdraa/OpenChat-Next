@@ -1,0 +1,62 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id           String        @id @default(cuid())
+  username     String        @unique
+  passwordHash String        @map("password_hash")
+  role         String        @default("admin")
+  createdAt    DateTime      @default(now()) @map("created_at")
+  updatedAt    DateTime      @updatedAt @map("updated_at")
+  chatSessions ChatSession[]
+
+  @@map("users")
+}
+
+model AppSettings {
+  id                  String   @id @default(cuid())
+  siteName            String   @map("site_name")
+  systemPrompt        String   @map("system_prompt") @db.Text
+  providerBaseUrl     String   @map("provider_base_url")
+  providerApiKey      String   @map("provider_api_key")
+  providerModel       String   @map("provider_model")
+  setupCompleted      Boolean  @default(false) @map("setup_completed")
+  createdAt           DateTime @default(now()) @map("created_at")
+  updatedAt           DateTime @updatedAt @map("updated_at")
+
+  @@map("app_settings")
+}
+
+model ChatSession {
+  id        String    @id @default(cuid())
+  title     String    @default("New Chat")
+  userId    String?   @map("user_id")
+  browserId String?   @map("browser_id")
+  user      User?     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages  Message[]
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+
+  @@index([browserId])
+  @@map("chat_sessions")
+}
+
+model Message {
+  id        String      @id @default(cuid())
+  sessionId String      @map("session_id")
+  session   ChatSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  role      String
+  content   String      @db.Text
+  createdAt DateTime    @default(now()) @map("created_at")
+
+  @@map("messages")
+}
